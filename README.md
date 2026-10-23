@@ -138,12 +138,6 @@ Running locally may require changes to the dataset path and installation of comp
 - Explore temporal localization of suspicious events.
 - Develop a simple interface for video upload and inference.
 
-## Author
-
-**[Your Name]**
-
-GitHub: [Your GitHub Profile URL]
-
 ## Disclaimer
 
 This project is an educational machine learning experiment. Its predictions should not be treated as proof of theft or used as the sole basis for accusing or taking action against any person. Any practical deployment would require extensive independent evaluation, human review, and privacy safeguards.
