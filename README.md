@@ -2,66 +2,67 @@
 
 ### Shoplifting Video Classification Using a Custom 3D CNN
 
-ShopGuard-3D is a deep learning project that classifies videos into two categories: **Shoplifting** and **Non-shoplifting**. It uses a custom 3D Convolutional Neural Network (3D CNN) trained from scratch to learn spatial and temporal features from video frames.
+## 1. Project Overview
 
-## Project Overview
+ShopGuard-3D is a deep learning project that classifies video clips into two categories:
 
-The goal of this project is to explore video-based shoplifting classification using deep learning.
+- Non-shoplifting
+- Shoplifting
 
-Unlike a conventional 2D CNN that processes individual images, a 3D CNN applies convolutions across spatial and temporal dimensions, allowing the model to learn information from multiple frames.
+The project uses a custom 3D Convolutional Neural Network (3D CNN) built and trained from scratch using PyTorch.
 
-**This project performs video-level classification. It does not localize people, identify individuals, or pinpoint the exact moment of a suspected event.**
+## 2. Dataset
 
-## Dataset
+**Dataset:** [Shoplifting Detection Dataset](https://www.kaggle.com/datasets/nebalelshobary/shoplifting-detection-dataset)
 
-The project uses the Shoplifting Detection Dataset available through Kaggle.
+The dataset contains 855 videos:
 
-- Total videos: 855
-- Non-shoplifting videos: 531
-- Shoplifting videos: 324
+- Non-shoplifting: 531 videos
+- Shoplifting: 324 videos
 
-Dataset link: [Shoplifting Detection Dataset on Kaggle](https://www.kaggle.com/datasets/nebalelshobary/shoplifting-detection-dataset)
+## 3. Data Preprocessing
 
-The dataset is split into training, validation, and test sets using group-aware splitting to reduce the risk of related videos appearing across different subsets.
+The following preprocessing steps were implemented:
 
-| Split | Videos | Non-shoplifting | Shoplifting |
+- Sample 16 frames from each video.
+- Resize frames to 160 × 160 pixels while preserving aspect ratio using padding.
+- Convert video frames into tensors for model input.
+- Apply video-level augmentation to training samples only.
+
+## 4. Dataset Splitting
+
+The dataset was divided into training, validation, and test sets using group-aware splitting.
+
+| Split | Total Videos | Non-shoplifting | Shoplifting |
 |---|---:|---:|---:|
 | Training | 611 | 379 | 232 |
 | Validation | 122 | 76 | 46 |
 | Test | 122 | 76 | 46 |
 | **Total** | **855** | **531** | **324** |
 
-The grouping is based on video filenames. This does not guarantee that visually similar videos with unrelated filenames are separated.
+Grouping was based on video filenames to reduce the risk of related videos appearing in multiple splits.
 
-## Data Preprocessing
+## 5. Model Architecture
 
-- Sample 16 frames from each video.
-- Resize frames to 160 × 160 pixels while preserving aspect ratio using padding.
-- Convert video frames into tensors suitable for 3D CNN input.
-- Apply video-level augmentation to training samples only.
-- Use separate training, validation, and test datasets.
+A custom 3D CNN was implemented without pretrained weights.
 
-## Model Architecture
+The architecture includes:
 
-A custom 3D CNN is implemented and trained from scratch without pretrained weights.
-
-The model includes:
-
-- 3D convolutional layers with channel progression: 3 → 16 → 32 → 64 → 128.
-- Batch Normalization and ReLU activations.
-- 3D max pooling.
-- Adaptive average pooling.
-- Fully connected classification layers with dropout.
+- 3D convolutional layers: 3 → 16 → 32 → 64 → 128 channels.
+- Batch Normalization and ReLU activation.
+- Max Pooling layers.
+- Adaptive Average Pooling.
+- Fully connected classification layers.
+- Dropout for regularization.
 - Two output classes.
 
-Total model parameters: **300,466**.
+**Total parameters:** 300,466
 
-## Training Configuration
+## 6. Training Configuration
 
-| Setting | Value |
+| Parameter | Value |
 |---|---|
 | Framework | PyTorch |
-| Model | Custom 3D CNN |
 | Maximum epochs | 25 |
 | Batch size | 4 |
 | Initial learning rate | 0.001 |
@@ -69,16 +70,18 @@ Total model parameters: **300,466**.
 | Weight decay | 0.0001 |
 | Learning-rate scheduler | ReduceLROnPlateau |
 | Early-stopping patience | 5 epochs |
-| Input frames | 16 |
-| Frame size | 160 × 160 |
+| Training device | CUDA GPU |
 
-The best checkpoint is selected using validation loss.
+The best model checkpoint was selected based on validation loss.
 
-## Test Results
+**Best epoch:** 24  
+**Best validation loss:** 0.3644
 
-The best checkpoint was evaluated on the held-out test set of 122 videos.
+## 7. Test Evaluation
 
-| Metric | Score |
+The saved best checkpoint was evaluated on the held-out test set containing 122 videos.
+
+| Metric | Result |
 |---|---:|
 | Accuracy | 87.70% |
 | Shoplifting Precision | 80.39% |
@@ -87,57 +90,28 @@ The best checkpoint was evaluated on the held-out test set of 122 videos.
 
 ### Confusion Matrix
 
-Rows represent actual labels; columns represent predicted labels.
+Rows represent actual classes; columns represent predicted classes.
 
-| | Predicted: Non-shoplifting | Predicted: Shoplifting |
+| | Predicted Non-shoplifting | Predicted Shoplifting |
 |---|---:|---:|
-| Actual: Non-shoplifting | 66 | 10 |
-| Actual: Shoplifting | 5 | 41 |
+| Actual Non-shoplifting | 66 | 10 |
+| Actual Shoplifting | 5 | 41 |
 
-These results are an initial experimental evaluation on this dataset. They do not establish real-world reliability or guarantee performance on footage from different stores, cameras, or environments.
+## 8. Current Project Files
 
-## Requirements
+- `shoplifting-detection-3d-cnn.ipynb` — Notebook containing the implementation, training, and evaluation.
+- `best_shoplifting_3dcnn.pth` — Saved model checkpoint.
+- `requirements.txt` — Python dependencies.
+- `.gitignore` — Git ignore configuration.
+- `README.md` — Project documentation.
 
-The project uses Python and the following main libraries:
+## 9. Current Limitations
 
-- PyTorch
-- NumPy
-- Pandas
-- OpenCV
-- Pillow
-- scikit-learn
-- Matplotlib
-
-See `requirements.txt` for the project dependencies.
-
-## How to Run
-
-The notebook was developed in Kaggle and uses a Kaggle dataset input path.
-
-1. Open the notebook in Kaggle.
-2. Add the dataset to the notebook using Kaggle's dataset interface.
-3. Verify the dataset path in the notebook.
-4. Run the notebook cells in order.
-5. Train the model and evaluate the saved best checkpoint on the test set.
-
-Running locally may require changes to the dataset path and installation of compatible Python and PyTorch versions.
-
-## Limitations
-
-- The model predicts one class for an entire video.
+- The model classifies an entire video into one of two classes.
+- It does not localize the exact moment of a suspected event.
 - It does not identify or track individuals.
-- It does not provide temporal localization of suspected shoplifting.
-- Performance on unseen environments has not been established.
-- Filename-based grouping cannot guarantee the absence of visual duplicates across splits.
-
-## Future Improvements
-
-- Analyze training and validation curves to assess overfitting.
-- Evaluate performance on additional independent datasets.
-- Investigate class-specific errors and false alarms.
-- Explore temporal localization of suspicious events.
-- Develop a simple interface for video upload and inference.
+- The reported metrics reflect evaluation on this dataset and do not establish real-world performance.
 
 ## Disclaimer
 
-This project is an educational machine learning experiment. Its predictions should not be treated as proof of theft or used as the sole basis for accusing or taking action against any person. Any practical deployment would require extensive independent evaluation, human review, and privacy safeguards.
+This project is an educational deep learning experiment. Predictions should not be treated as proof of theft or used as the sole basis for accusing or taking action against any person.
