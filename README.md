@@ -1,117 +1,90 @@
-# ShopGuard-3D
+# ShopGuard: Shoplifting Detection with Deep Learning
 
-### Shoplifting Video Classification Using a Custom 3D CNN
+**End-to-end binary video classification** · **Week 5: 3D CNN from scratch** · **Week 6: pretrained VideoMAE fine-tuning**
 
-## 1. Project Overview
+This repository documents a two-stage research project that classifies shopping video clips as **Normal** or **Shoplifting**. It starts with a lightweight 3D CNN trained from scratch and then evaluates a pretrained [VideoMAE](https://huggingface.co/MCG-NJU/videomae-base-finetuned-kinetics) fine-tuned on the same task.
 
-ShopGuard-3D is a deep learning project that classifies video clips into two categories:
+> **Responsible use:** Model predictions are imperfect screening signals, **not evidence that someone has committed theft**. False negatives, false positives, privacy, and human review matter in real-world deployments.
 
-- Non-shoplifting
-- Shoplifting
+## Project at a glance
 
-The project uses a custom 3D Convolutional Neural Network (3D CNN) built and trained from scratch using PyTorch.
+| Stage | Model | What it covers | Notebook |
+|---|---|---|---|
+| **Week 5** | Custom 3D CNN | Frame sampling, clip-level augmentation, dataset class, training from scratch, metrics | [Week 5 notebook](shoplifting-detection-3d-cnn.ipynb) |
+| **Week 6** | VideoMAE (transfer learning) | Pretrained model, binary classifier, fine-tuning, held-out evaluation, inference benchmarking | [Week 6 notebook](week6/shoplifting_videomae.ipynb) |
 
-## 2. Dataset
+## Results: matched Week 6 test videos
 
-**Dataset:** [Shoplifting Detection Dataset](https://www.kaggle.com/datasets/nebalelshobary/shoplifting-detection-dataset)
+Both saved model checkpoints were evaluated on the **same 122 Week 6 test clips** (76 normal, 46 shoplifting). These are observations from **one recorded Kaggle run**, not statistical-significance claims.
 
-The dataset contains 855 videos:
+| Metric | Week 5 · 3D CNN | Week 6 · VideoMAE |
+|:--|--:|--:|
+| Test accuracy | 87.70% | **96.72%** |
+| Shoplifting precision | 80.39% | **100.00%** |
+| Shoplifting recall | 89.13% | **91.30%** |
+| Shoplifting F1-score | 84.54% | **95.45%** |
+| Model parameters | 300,466 | 86,237,954 |
+| Checkpoint size | 3.46 MB | 329.05 MB |
+| FP32 latency, batch 1 | **3.539 ms** | 121.453 ms |
+| AMP/FP16 latency, batch 1 | **1.826 ms** | 32.771 ms |
 
-- Non-shoplifting: 531 videos
-- Shoplifting: 324 videos
+**F1 difference:** +10.92 percentage points for the fine-tuned VideoMAE in this evaluation. However, VideoMAE requires considerably more compute and storage. The VideoMAE confusion matrix is `[[76, 0], [4, 42]]` (rows = true classes; columns = predicted classes, ordered Normal/Shoplifting).
 
-## 3. Data Preprocessing
+**Benchmark conditions:** Tesla T4 GPU, single GPU, **batch size 1**, synthetic model inputs, warmed-up model-only forward-pass timings. FP32 and AMP/FP16 are **separate** experiments. Video decode/preprocessing is excluded. VideoMAE consumes 16 frames at 224×224; the CNN uses 16 frames at 160×160. A separate batched dual-GPU result in the notebook is not directly comparable to these batch-1 timings.
 
-The following preprocessing steps were implemented:
+### Training and test visualizations
 
-- Sample 16 frames from each video.
-- Resize frames to 160 × 160 pixels while preserving aspect ratio using padding.
-- Convert video frames into tensors for model input.
-- Apply video-level augmentation to training samples only.
+![VideoMAE train and validation curves](week6/assets/training_curves.png)
 
-## 4. Dataset Splitting
+![VideoMAE confusion matrix](week6/assets/confusion_matrix.png)
 
-The dataset was divided into training, validation, and test sets using group-aware splitting.
+## Repository structure
 
-| Split | Total Videos | Non-shoplifting | Shoplifting |
-|---|---:|---:|---:|
-| Training | 611 | 379 | 232 |
-| Validation | 122 | 76 | 46 |
-| Test | 122 | 76 | 46 |
-| **Total** | **855** | **531** | **324** |
+```text
+shopguard-3d/
+├── README.md                         # Overall project and results
+├── shoplifting-detection-3d-cnn.ipynb # Week 5: from-scratch 3D CNN
+├── best_shoplifting_3dcnn.pth        # Existing Week 5 weights
+├── requirements.txt                  # Existing Week 5 dependencies
+├── .gitignore                        # Existing root ignore rules
+└── week6/
+    ├── README.md                     # VideoMAE implementation details
+    ├── shoplifting_videomae.ipynb    # Week 6 completed notebook + outputs
+    ├── requirements.txt              # Week 6 dependencies
+    ├── .gitignore                    # Ignore large weights/video files
+    ├── assets/
+    │   ├── training_curves.png
+    │   └── confusion_matrix.png
+    └── results/
+        └── same_test_set_comparison.csv
+```
 
-Grouping was based on video filenames to reduce the risk of related videos appearing in multiple splits.
+## Reproduce the experiments
 
-## 5. Model Architecture
+1. Open the Week 5 or [Week 6 notebook](week6/shoplifting_videomae.ipynb) in **Kaggle Notebooks**.
+2. Attach the authorized labeled shoplifting video dataset and Week 5 checkpoint. The Week 6 notebook expects the dataset under `/kaggle/input/datasets/nebalelshobary/shoplifting-detection-dataset` (change `DATASET_PATH` if your mount differs); it searches `/kaggle/input/` for `best_shoplifting_3dcnn*.pth`.
+3. For Week 6, select GPU acceleration (recorded experiment used **2 × Tesla T4**) and enable internet for the first Hugging Face download. The runtime used `transformers==5.16.1` and `torch==2.11.0+cu128`; requirements are in [`week6/requirements.txt`](week6/requirements.txt).
+4. Run the notebook top to bottom. Week 6 performs **10 training epochs**, selects its checkpoint by validation F1, tests both models on the same Week 6 test clips, and exports plots/CSV files under `/kaggle/working/`.
 
-A custom 3D CNN was implemented without pretrained weights.
+The Week 6 notebook includes a compatibility mapping for VideoMAE attention-bias keys (`q_bias`/`v_bias`) when using the recorded Transformers version. Its binary classification head is newly initialized before fine-tuning.
 
-The architecture includes:
+## Evaluation limitations
 
-- 3D convolutional layers: 3 → 16 → 32 → 64 → 128 channels.
-- Batch Normalization and ReLU activation.
-- Max Pooling layers.
-- Adaptive Average Pooling.
-- Fully connected classification layers.
-- Dropout for regularization.
-- Two output classes.
+- **Important:** We could re-evaluate the Week 5 checkpoint on the exact Week 6 test clips, but **the original Week 5 training manifest was not saved**. Some of those clips might have been present during Week 5 training; the CNN's independence from this test set is **unverified**. A rigorous paired study should reconstruct or independently audit the original Week 5 training membership.
+- The 855-clip dataset uses group-aware Week 6 splitting (611 train, 122 validation, 122 test). This guards against overlap in the constructed `Group_ID`s; it does not prove the absence of all near-duplicates.
+- Training augmentation is not completely deterministic. A new run may differ even with the same seed. The **saved notebook outputs** are from a completed run, and the test estimates are based on only 122 clips.
+- VideoMAE missed 4 of the 46 positive examples. A security-oriented deployment would require further validation and a human-in-the-loop review process.
 
-**Total parameters:** 300,466
+For training details, error analysis, checkpoint storage, and hyperparameters, see [Week 6 documentation](week6/README.md).
 
-## 6. Training Configuration
+## Weights and dataset
 
-| Parameter | Value |
-|---|---|
-| Framework | PyTorch |
-| Maximum epochs | 25 |
-| Batch size | 4 |
-| Initial learning rate | 0.001 |
-| Optimizer | Adam |
-| Weight decay | 0.0001 |
-| Learning-rate scheduler | ReduceLROnPlateau |
-| Early-stopping patience | 5 epochs |
-| Training device | CUDA GPU |
+The existing 3D CNN checkpoint is part of Week 5. The fine-tuned VideoMAE checkpoint is about **329 MB**, above GitHub's **100 MB ordinary-file limit**, so it is intentionally **not committed**. Store large weights outside Git or with a configured large-file mechanism, subject to permission and upstream licenses. Raw video data is not distributed here.
 
-The best model checkpoint was selected based on validation loss.
+## Technology
 
-**Best epoch:** 24  
-**Best validation loss:** 0.3644
+Python · PyTorch · Hugging Face Transformers · OpenCV · scikit-learn · NumPy/Pandas · Kaggle GPUs
 
-## 7. Test Evaluation
+## Source model
 
-The saved best checkpoint was evaluated on the held-out test set containing 122 videos.
-
-| Metric | Result |
-|---|---:|
-| Accuracy | 87.70% |
-| Shoplifting Precision | 80.39% |
-| Shoplifting Recall | 89.13% |
-| Shoplifting F1-score | 84.54% |
-
-### Confusion Matrix
-
-Rows represent actual classes; columns represent predicted classes.
-
-| | Predicted Non-shoplifting | Predicted Shoplifting |
-|---|---:|---:|
-| Actual Non-shoplifting | 66 | 10 |
-| Actual Shoplifting | 5 | 41 |
-
-## 8. Current Project Files
-
-- `shoplifting-detection-3d-cnn.ipynb` — Notebook containing the implementation, training, and evaluation.
-- `best_shoplifting_3dcnn.pth` — Saved model checkpoint.
-- `requirements.txt` — Python dependencies.
-- `.gitignore` — Git ignore configuration.
-- `README.md` — Project documentation.
-
-## 9. Current Limitations
-
-- The model classifies an entire video into one of two classes.
-- It does not localize the exact moment of a suspected event.
-- It does not identify or track individuals.
-- The reported metrics reflect evaluation on this dataset and do not establish real-world performance.
-
-## Disclaimer
-
-This project is an educational deep learning experiment. Predictions should not be treated as proof of theft or used as the sole basis for accusing or taking action against any person.
+[MCG-NJU/videomae-base-finetuned-kinetics on Hugging Face](https://huggingface.co/MCG-NJU/videomae-base-finetuned-kinetics). This repository reports task-specific experiments and does not claim ownership of the upstream model, dataset, or videos.
