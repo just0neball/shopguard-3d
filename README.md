@@ -68,14 +68,6 @@ shopguard-3d/
 
 The Week 6 notebook includes a compatibility mapping for VideoMAE attention-bias keys (`q_bias`/`v_bias`) when using the recorded Transformers version. Its binary classification head is newly initialized before fine-tuning.
 
-## Evaluation limitations
-
-- **Important:** We could re-evaluate the Week 5 checkpoint on the exact Week 6 test clips, but **the original Week 5 training manifest was not saved**. Some of those clips might have been present during Week 5 training; the CNN's independence from this test set is **unverified**. A rigorous paired study should reconstruct or independently audit the original Week 5 training membership.
-- The 855-clip dataset uses group-aware Week 6 splitting (611 train, 122 validation, 122 test). This guards against overlap in the constructed `Group_ID`s; it does not prove the absence of all near-duplicates.
-- Training augmentation is not completely deterministic. A new run may differ even with the same seed. The **saved notebook outputs** are from a completed run, and the test estimates are based on only 122 clips.
-- VideoMAE missed 4 of the 46 positive examples. A security-oriented deployment would require further validation and a human-in-the-loop review process.
-
-For training details, error analysis, checkpoint storage, and hyperparameters, see [Week 6 documentation](week6/README.md).
 
 ## Weights and dataset
 
