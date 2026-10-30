@@ -1,0 +1,13 @@
+# Tested in Kaggle on 2026-10-30. GPU-specific PyTorch was provided by Kaggle.
+# Reproduce the same CUDA-enabled PyTorch installation on other platforms.
+transformers==5.16.1
+accelerate
+scikit-learn
+opencv-python-headless
+numpy
+pandas
+matplotlib
+seaborn
+tqdm
+huggingface_hub
+safetensors
